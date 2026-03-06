@@ -32,6 +32,31 @@ Send your Conekta API key in the request header:
 Authorization: Bearer key_xxx
 ```
 
+### Configuration (Hosted / Streamable HTTP)
+
+If your MCP client supports remote servers over HTTP, the JSON config should include the hosted URL and the `Authorization` header.
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "conekta": {
+      "url": "https://mcp.conekta.com/mcp",
+      "headers": {
+        "Authorization": "Bearer key_xxx"
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- Replace `key_xxx` with your real Conekta private API key.
+- The header must be exactly `Authorization`.
+- The value must include the `Bearer ` prefix.
+
 ## Configuration (Claude Desktop / stdio)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
