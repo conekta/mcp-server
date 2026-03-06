@@ -18,6 +18,15 @@ def test_build_parser_reads_transport_env(monkeypatch):
     assert args.transport == "streamable-http"
 
 
+def test_build_parser_reads_legacy_transport_env(monkeypatch):
+    monkeypatch.delenv("CONEKTA_MCP_TRANSPORT", raising=False)
+    monkeypatch.setenv("MCP_TRANSPORT", "streamable-http")
+
+    args = __main__.build_parser().parse_args([])
+
+    assert args.transport == "streamable-http"
+
+
 def test_main_runs_selected_transport(monkeypatch):
     call = {}
 
