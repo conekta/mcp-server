@@ -15,7 +15,19 @@ export CONEKTA_API_KEY=key_your_api_key
 uv run python -m conekta_mcp
 ```
 
-## Configuration (Claude Desktop)
+By default the server uses the `stdio` transport for local MCP clients such as Claude Desktop.
+
+## Hosted MCP
+
+The server is available remotely over Streamable HTTP at:
+
+```text
+https://mcp.conekta.com/mcp
+```
+
+Use this endpoint if you want to connect to the hosted Conekta MCP server.
+
+## Configuration (Claude Desktop / stdio)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
@@ -54,11 +66,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 # Build the image
 docker build -t conekta-mcp .
 
-# Run with docker compose
-CONEKTA_API_KEY=key_your_api_key docker compose up
+docker run -i --rm \
+  -e CONEKTA_API_KEY=key_your_api_key \
+  conekta-mcp
 ```
 
-### Configuration (Claude Desktop with Docker)
+### Configuration (Claude Desktop with Docker / stdio)
 
 ```json
 {

@@ -10,7 +10,7 @@ on:
       - master
 jobs:
   build:
-    runs-on: aws-runner-set
+    runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
     steps:

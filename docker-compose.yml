@@ -3,4 +3,9 @@ services:
     build: .
     environment:
       - CONEKTA_API_KEY=${CONEKTA_API_KEY}
-    stdin_open: true
+      - CONEKTA_MCP_TRANSPORT=${CONEKTA_MCP_TRANSPORT:-streamable-http}
+      - CONEKTA_MCP_HOST=${CONEKTA_MCP_HOST:-0.0.0.0}
+      - CONEKTA_MCP_PORT=${CONEKTA_MCP_PORT:-8000}
+      - CONEKTA_MCP_STREAMABLE_HTTP_PATH=${CONEKTA_MCP_STREAMABLE_HTTP_PATH:-/mcp}
+    ports:
+      - "${CONEKTA_MCP_PORT:-8000}:${CONEKTA_MCP_PORT:-8000}"
