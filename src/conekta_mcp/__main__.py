@@ -32,5 +32,5 @@ def main(argv: list[str] | None = None) -> None:
     TRANSPORT_RUNNERS[args.transport]()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

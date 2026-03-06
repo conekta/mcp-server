@@ -93,3 +93,31 @@ def test_get_request_header_api_key_returns_bearer_token():
         assert auth.get_request_header_api_key() == "header_key"
     finally:
         request_ctx.reset(token)
+
+
+def test_get_request_header_api_key_rejects_non_bearer_tokens():
+    request = _request_with_headers([(b"authorization", b"Basic header_key")])
+    token = request_ctx.set(
+        RequestContext(
+            request_id="req_invalid_scheme",
+            meta=None,
+            session=None,
+            lifespan_context=None,
+            request=request,
+        )
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="Bearer token format"):
+            auth.get_request_header_api_key()
+    finally:
+        request_ctx.reset(token)
+
+
+def test_get_api_key_uses_configured_provider():
+    auth.set_api_key_provider(lambda: "provider_key")
+
+    try:
+        assert auth.get_api_key() == "provider_key"
+    finally:
+        auth.reset_api_key_provider()

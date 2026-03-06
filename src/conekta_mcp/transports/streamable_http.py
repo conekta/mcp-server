@@ -1,9 +1,9 @@
 from conekta_mcp.auth import get_request_header_api_key, set_api_key_provider
 from conekta_mcp.server import mcp
-
-import conekta_mcp.tools  # noqa: F401
+from conekta_mcp.tools import initialize
 
 
 def run() -> None:
+    initialize()
     set_api_key_provider(get_request_header_api_key)
     mcp.run(transport="streamable-http")
