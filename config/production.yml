@@ -1,6 +1,6 @@
 service_name: mcp-server
 type: ssr
-internal: true
+internal: false
 subdomain: mcp
 container_port: 8000
 container_cpu: 256
