@@ -1,9 +1,9 @@
 import json
-import os
 from importlib.metadata import PackageNotFoundError, version
 
 import httpx
-from mcp.server.lowlevel.server import request_ctx
+
+from conekta_mcp.auth import get_api_key
 
 BASE_URL = "https://api.conekta.io"
 CONTENT_TYPE = "application/vnd.conekta-v2.2.0+json"
@@ -20,38 +20,6 @@ def _get_user_agent() -> str:
 USER_AGENT = _get_user_agent()
 
 _client: httpx.AsyncClient | None = None
-
-
-def _get_request_api_key() -> str | None:
-    try:
-        request_context = request_ctx.get()
-    except LookupError:
-        return None
-
-    request = request_context.request
-    if request is None:
-        return None
-
-    authorization = request.headers.get("authorization")
-    if not authorization:
-        return None
-
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise RuntimeError(
-            "Authorization header must use Bearer token format."
-        )
-    return token
-
-
-def _get_api_key() -> str:
-    key = _get_request_api_key() or os.environ.get("CONEKTA_API_KEY")
-    if not key:
-        raise RuntimeError(
-            "Conekta API key is not set. "
-            "Send it as Authorization: Bearer <key> or set CONEKTA_API_KEY."
-        )
-    return key
 
 
 def get_client() -> httpx.AsyncClient:
@@ -91,7 +59,7 @@ async def conekta_get(path: str, params: dict | None = None) -> str:
         response = await get_client().get(
             path,
             params=params,
-            headers={"Authorization": f"Bearer {_get_api_key()}"},
+            headers={"Authorization": f"Bearer {get_api_key()}"},
         )
         response.raise_for_status()
         return _format(response.json())
@@ -118,7 +86,7 @@ async def conekta_request(
             path,
             json=body,
             params=params,
-            headers={"Authorization": f"Bearer {_get_api_key()}"},
+            headers={"Authorization": f"Bearer {get_api_key()}"},
         )
         response.raise_for_status()
         if response.status_code == 204:
