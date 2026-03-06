@@ -1,11 +1,23 @@
 import json
 import os
+from importlib.metadata import PackageNotFoundError, version
 
 import httpx
 from mcp.server.lowlevel.server import request_ctx
 
 BASE_URL = "https://api.conekta.io"
 CONTENT_TYPE = "application/vnd.conekta-v2.2.0+json"
+
+
+def _get_user_agent() -> str:
+    try:
+        package_version = version("conekta-mcp")
+    except PackageNotFoundError:
+        package_version = "unknown"
+    return f"conekta-mcp/{package_version}"
+
+
+USER_AGENT = _get_user_agent()
 
 _client: httpx.AsyncClient | None = None
 
@@ -50,6 +62,7 @@ def get_client() -> httpx.AsyncClient:
             headers={
                 "Accept": CONTENT_TYPE,
                 "Accept-Language": "en",
+                "User-Agent": USER_AGENT,
             },
             timeout=30.0,
         )

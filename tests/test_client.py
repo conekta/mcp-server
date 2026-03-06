@@ -7,7 +7,7 @@ from mcp.server.lowlevel.server import request_ctx
 from mcp.shared.context import RequestContext
 from starlette.requests import Request
 
-from conekta_mcp.client import conekta_get, conekta_request, get_client
+from conekta_mcp.client import USER_AGENT, conekta_get, conekta_request, get_client
 
 
 def _request_with_headers(headers: list[tuple[bytes, bytes]]) -> Request:
@@ -30,6 +30,7 @@ def test_get_client_sets_default_headers():
     client = get_client()
     assert "conekta" in client.headers["accept"]
     assert "authorization" not in client.headers
+    assert client.headers["user-agent"] == USER_AGENT
 
 
 @pytest.mark.asyncio
@@ -84,6 +85,7 @@ async def test_conekta_request_sends_request_authorization_header(mock_api):
     assert len(route.calls) == 1
     sent_request = route.calls[0].request
     assert sent_request.headers["authorization"] == "Bearer key_from_header"
+    assert sent_request.headers["user-agent"] == USER_AGENT
 
 
 @pytest.mark.asyncio
