@@ -57,6 +57,15 @@ Notes:
 - The header must be exactly `Authorization`.
 - The value must include the `Bearer ` prefix.
 
+### Claude Code (CLI)
+
+```bash
+claude mcp add --transport http conekta https://mcp.conekta.com/mcp \
+  --header "Authorization: Bearer key_xxx"
+```
+
+Replace `key_xxx` with your real Conekta private API key.
+
 ## Configuration (Claude Desktop / stdio)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
