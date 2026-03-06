@@ -22,7 +22,7 @@ async def create_checkout(
     customer_info_phone: str | None = None,
     line_items_json: str | None = None,
     monthly_installments_enabled: bool = False,
-    monthly_installments_options_json: str | None = None,
+    monthly_installments_options: list[int] | None = None,
     success_url: str | None = None,
     failure_url: str | None = None,
 ) -> str:
@@ -45,7 +45,7 @@ async def create_checkout(
         customer_info_phone: Customer phone E.164 (if not using existing customer)
         line_items_json: JSON array for multiple items, overrides item_name/unit_price/quantity: [{"name":"Item","unit_price":1000,"quantity":1}]
         monthly_installments_enabled: Enable monthly installments
-        monthly_installments_options_json: JSON array of installment options: [3,6,9,12]
+        monthly_installments_options: Installment options (e.g., [3,6,9,12])
         success_url: Redirect URL after successful payment
         failure_url: Redirect URL after failed payment
     """
@@ -90,13 +90,8 @@ async def create_checkout(
 
     if monthly_installments_enabled:
         body["monthly_installments_enabled"] = True
-        if monthly_installments_options_json:
-            try:
-                body["monthly_installments_options"] = _json.loads(
-                    monthly_installments_options_json
-                )
-            except _json.JSONDecodeError:
-                return '{"error": true, "message": "Invalid JSON in monthly_installments_options_json"}'
+        if monthly_installments_options:
+            body["monthly_installments_options"] = monthly_installments_options
 
     if success_url:
         body["success_url"] = success_url
