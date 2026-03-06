@@ -1,0 +1,6 @@
+services:
+  conekta-mcp:
+    build: .
+    environment:
+      - CONEKTA_API_KEY=${CONEKTA_API_KEY}
+    stdin_open: true
