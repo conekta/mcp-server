@@ -8,50 +8,60 @@ from conekta_mcp.server import mcp
 async def create_checkout(
     name: str,
     type: str,
+    recurrent: bool,
+    expires_at: int,
+    allowed_payment_methods: str,
     order_template_currency: str,
-    order_template_line_items_json: str,
-    recurrent: bool = False,
-    expires_at: int | None = None,
-    allowed_payment_methods_json: str | None = None,
+    item_name: str,
+    item_unit_price: int,
+    item_quantity: int = 1,
+    line_items_json: str | None = None,
     monthly_installments_enabled: bool = False,
     monthly_installments_options_json: str | None = None,
+    success_url: str | None = None,
+    failure_url: str | None = None,
 ) -> str:
     """Create a payment link (checkout).
 
     Args:
         name: Checkout name for identification
         type: Checkout type (PaymentLink or Integration)
+        recurrent: false for single use, true for multiple payments
+        expires_at: Expiration Unix timestamp (10 minutes to 365 days from now)
+        allowed_payment_methods: Comma-separated payment methods (e.g., "card,cash,bank_transfer")
         order_template_currency: ISO currency code (e.g., MXN)
-        order_template_line_items_json: JSON array: [{"name":"Item","unit_price":1000,"quantity":1}]
-        recurrent: Whether this is a recurring payment link
-        expires_at: Expiration Unix timestamp (optional)
-        allowed_payment_methods_json: JSON array of allowed methods: ["card","cash","bank_transfer"]
+        item_name: Product name for the line item
+        item_unit_price: Price per unit in cents (e.g., 50000 for $500.00 MXN)
+        item_quantity: Number of units (default 1)
+        line_items_json: JSON array for multiple items, overrides item_name/unit_price/quantity: [{"name":"Item","unit_price":1000,"quantity":1}]
         monthly_installments_enabled: Enable monthly installments
         monthly_installments_options_json: JSON array of installment options: [3,6,9,12]
+        success_url: Redirect URL after successful payment
+        failure_url: Redirect URL after failed payment
     """
-    try:
-        line_items = _json.loads(order_template_line_items_json)
-    except _json.JSONDecodeError:
-        return '{"error": true, "message": "Invalid JSON in order_template_line_items_json"}'
+    methods = [m.strip() for m in allowed_payment_methods.split(",")]
+
+    if line_items_json:
+        try:
+            line_items = _json.loads(line_items_json)
+        except _json.JSONDecodeError:
+            return '{"error": true, "message": "Invalid JSON in line_items_json"}'
+    else:
+        line_items = [
+            {"name": item_name, "unit_price": item_unit_price, "quantity": item_quantity}
+        ]
 
     body: dict = {
         "name": name,
         "type": type,
         "recurrent": recurrent,
+        "expires_at": expires_at,
+        "allowed_payment_methods": methods,
         "order_template": {
             "currency": order_template_currency,
             "line_items": line_items,
         },
     }
-
-    if expires_at is not None:
-        body["expires_at"] = expires_at
-
-    if allowed_payment_methods_json:
-        try:
-            body["allowed_payment_methods"] = _json.loads(allowed_payment_methods_json)
-        except _json.JSONDecodeError:
-            return '{"error": true, "message": "Invalid JSON in allowed_payment_methods_json"}'
 
     if monthly_installments_enabled:
         body["monthly_installments_enabled"] = True
@@ -62,6 +72,11 @@ async def create_checkout(
                 )
             except _json.JSONDecodeError:
                 return '{"error": true, "message": "Invalid JSON in monthly_installments_options_json"}'
+
+    if success_url:
+        body["success_url"] = success_url
+    if failure_url:
+        body["failure_url"] = failure_url
 
     return await conekta_request("POST", "/checkouts", body=body)
 

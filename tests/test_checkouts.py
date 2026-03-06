@@ -21,11 +21,36 @@ async def test_create_checkout(mock_api):
     result = await create_checkout(
         name="Test Checkout",
         type="PaymentLink",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card,cash,bank_transfer",
         order_template_currency="MXN",
-        order_template_line_items_json='[{"name":"Item","unit_price":1000,"quantity":1}]',
+        item_name="Playera",
+        item_unit_price=50000,
+        item_quantity=1,
     )
     data = json.loads(result)
     assert data["id"] == "chk_1"
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_with_line_items_json(mock_api):
+    mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_2"})
+    )
+    result = await create_checkout(
+        name="Multi Item",
+        type="PaymentLink",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="ignored",
+        item_unit_price=0,
+        line_items_json='[{"name":"A","unit_price":1000,"quantity":1},{"name":"B","unit_price":2000,"quantity":2}]',
+    )
+    data = json.loads(result)
+    assert data["id"] == "chk_2"
 
 
 @pytest.mark.asyncio
@@ -33,8 +58,13 @@ async def test_create_checkout_invalid_json():
     result = await create_checkout(
         name="Bad",
         type="PaymentLink",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
         order_template_currency="MXN",
-        order_template_line_items_json="not json",
+        item_name="X",
+        item_unit_price=100,
+        line_items_json="not json",
     )
     data = json.loads(result)
     assert data["error"] is True
