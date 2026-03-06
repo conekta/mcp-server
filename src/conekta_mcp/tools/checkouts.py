@@ -15,6 +15,7 @@ async def create_checkout(
     item_name: str,
     item_unit_price: int,
     item_quantity: int = 1,
+    needs_shipping_contact: bool = False,
     line_items_json: str | None = None,
     monthly_installments_enabled: bool = False,
     monthly_installments_options_json: str | None = None,
@@ -33,6 +34,7 @@ async def create_checkout(
         item_name: Product name for the line item
         item_unit_price: Price per unit in cents (e.g., 50000 for $500.00 MXN)
         item_quantity: Number of units (default 1)
+        needs_shipping_contact: Whether shipping contact info is required (default false)
         line_items_json: JSON array for multiple items, overrides item_name/unit_price/quantity: [{"name":"Item","unit_price":1000,"quantity":1}]
         monthly_installments_enabled: Enable monthly installments
         monthly_installments_options_json: JSON array of installment options: [3,6,9,12]
@@ -55,6 +57,7 @@ async def create_checkout(
         "name": name,
         "type": type,
         "recurrent": recurrent,
+        "needs_shipping_contact": needs_shipping_contact,
         "expires_at": expires_at,
         "allowed_payment_methods": methods,
         "order_template": {
