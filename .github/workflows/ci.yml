@@ -10,7 +10,7 @@ on:
       - master
 jobs:
   build:
-    runs-on: aws-runner-set
+    runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
     steps:
@@ -30,13 +30,12 @@ jobs:
             -e CONEKTA_API_KEY=test_key \
             -v ${{ github.workspace }}/coverage:/app/coverage \
             conekta-mcp:${{ github.run_id }} \
-            uv run pytest tests/ -v --junitxml=coverage/report.xml --cov=conekta_mcp --cov-report=xml:coverage/coverage.xml
+            uv run pytest tests/ -v --junitxml=coverage/report.xml --cov --cov-report=xml
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7.0.0
         with:
           args: >
-            -Dsonar.projectKey=${{ github.event.repository.name }}
             -Dsonar.projectVersion=${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
             -Dsonar.qualitygate.wait=true
         env:

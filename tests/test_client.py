@@ -3,23 +3,89 @@ import json
 import httpx
 import pytest
 import respx
+from mcp.server.lowlevel.server import request_ctx
+from mcp.shared.context import RequestContext
+from starlette.requests import Request
 
-from conekta_mcp.client import conekta_get, conekta_request, get_client
+from conekta_mcp.client import USER_AGENT, conekta_get, conekta_request, get_client
 
 
-def test_get_client_sets_auth_header():
+def _request_with_headers(headers: list[tuple[bytes, bytes]]) -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/mcp",
+            "headers": headers,
+            "query_string": b"",
+            "scheme": "https",
+            "http_version": "1.1",
+            "client": ("127.0.0.1", 1234),
+            "server": ("testserver", 443),
+        }
+    )
+
+
+def test_get_client_sets_default_headers():
     client = get_client()
-    assert client.headers["authorization"] == "Bearer test_key_abc123"
     assert "conekta" in client.headers["accept"]
+    assert "authorization" not in client.headers
+    assert client.headers["user-agent"] == USER_AGENT
 
 
-def test_get_client_missing_key(monkeypatch):
+@pytest.mark.asyncio
+async def test_conekta_get_missing_key(monkeypatch):
     monkeypatch.delenv("CONEKTA_API_KEY", raising=False)
-    from conekta_mcp import client
+    with pytest.raises(RuntimeError, match="Authorization: Bearer <key>"):
+        await conekta_get("/balance")
 
-    client._client = None
-    with pytest.raises(RuntimeError, match="CONEKTA_API_KEY"):
-        get_client()
+
+def test_conekta_request_uses_authorization_header_from_request_context():
+    request = _request_with_headers([(b"authorization", b"Bearer key_from_header")])
+    token = request_ctx.set(
+        RequestContext(
+            request_id="req_1",
+            meta=None,
+            session=None,
+            lifespan_context=None,
+            request=request,
+        )
+    )
+
+    try:
+        assert get_client().headers.get("authorization") is None
+        from conekta_mcp.client import _get_api_key
+
+        assert _get_api_key() == "key_from_header"
+    finally:
+        request_ctx.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_conekta_request_sends_request_authorization_header(mock_api):
+    route = mock_api.get("/balance").mock(
+        return_value=httpx.Response(200, json={"balance": 1000})
+    )
+    request = _request_with_headers([(b"authorization", b"Bearer key_from_header")])
+    token = request_ctx.set(
+        RequestContext(
+            request_id="req_2",
+            meta=None,
+            session=None,
+            lifespan_context=None,
+            request=request,
+        )
+    )
+
+    try:
+        await conekta_get("/balance")
+    finally:
+        request_ctx.reset(token)
+
+    assert len(route.calls) == 1
+    sent_request = route.calls[0].request
+    assert sent_request.headers["authorization"] == "Bearer key_from_header"
+    assert sent_request.headers["user-agent"] == USER_AGENT
 
 
 @pytest.mark.asyncio

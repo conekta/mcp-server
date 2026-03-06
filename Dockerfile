@@ -11,4 +11,6 @@ COPY src/ src/
 COPY tests/ tests/
 RUN uv sync --extra dev
 
+EXPOSE 8000
+
 CMD ["uv", "run", "python", "-m", "conekta_mcp"]

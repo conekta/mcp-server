@@ -15,7 +15,58 @@ export CONEKTA_API_KEY=key_your_api_key
 uv run python -m conekta_mcp
 ```
 
-## Configuration (Claude Desktop)
+By default the server uses the `stdio` transport for local MCP clients such as Claude Desktop.
+
+## Hosted MCP
+
+The server is available remotely over Streamable HTTP at:
+
+```text
+https://mcp.conekta.com/mcp
+```
+
+Use this endpoint if you want to connect to the hosted Conekta MCP server.
+Send your Conekta API key in the request header:
+
+```text
+Authorization: Bearer key_xxx
+```
+
+### Configuration (Hosted / Streamable HTTP)
+
+If your MCP client supports remote servers over HTTP, the JSON config should include the hosted URL and the `Authorization` header.
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "conekta": {
+      "url": "https://mcp.conekta.com/mcp",
+      "headers": {
+        "Authorization": "Bearer key_xxx"
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- Replace `key_xxx` with your real Conekta private API key.
+- The header must be exactly `Authorization`.
+- The value must include the `Bearer ` prefix.
+
+### Claude Code (CLI)
+
+```bash
+claude mcp add --transport http conekta https://mcp.conekta.com/mcp \
+  --header "Authorization: Bearer key_xxx"
+```
+
+Replace `key_xxx` with your real Conekta private API key.
+
+## Configuration (Claude Desktop / stdio)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
@@ -54,11 +105,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 # Build the image
 docker build -t conekta-mcp .
 
-# Run with docker compose
-CONEKTA_API_KEY=key_your_api_key docker compose up
+docker run -i --rm \
+  -e CONEKTA_API_KEY=key_your_api_key \
+  conekta-mcp
 ```
 
-### Configuration (Claude Desktop with Docker)
+### Configuration (Claude Desktop with Docker / stdio)
 
 ```json
 {
