@@ -102,9 +102,6 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ## Docker
 
 ```bash
-# Pull the published image
-docker pull ghcr.io/conekta/mcp-server:latest
-
 docker run -i --rm \
   -e CONEKTA_API_KEY=key_your_api_key \
   ghcr.io/conekta/mcp-server:latest
