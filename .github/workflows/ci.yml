@@ -36,9 +36,9 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7.0.0
         with:
           args: >
+            -Dsonar.projectKey=${{ github.event.repository.name }}
+            -Dsonar.projectVersion=${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
             -Dsonar.qualitygate.wait=true
         env:
-          SONAR_PROJECT_KEY: ${{ github.event.repository.name }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_VERSION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
