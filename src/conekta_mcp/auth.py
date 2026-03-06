@@ -4,6 +4,9 @@ from collections.abc import Callable
 from mcp.server.lowlevel.server import request_ctx
 
 ApiKeyProvider = Callable[[], str]
+REQUEST_API_KEY_ERROR = (
+    "Conekta API key is not set. Send it as Authorization: Bearer <key>."
+)
 
 
 def get_env_api_key() -> str:
@@ -20,21 +23,15 @@ def get_request_header_api_key() -> str:
     try:
         request_context = request_ctx.get()
     except LookupError as exc:
-        raise RuntimeError(
-            "Conekta API key is not set. Send it as Authorization: Bearer <key>."
-        ) from exc
+        raise RuntimeError(REQUEST_API_KEY_ERROR) from exc
 
     request = request_context.request
     if request is None:
-        raise RuntimeError(
-            "Conekta API key is not set. Send it as Authorization: Bearer <key>."
-        )
+        raise RuntimeError(REQUEST_API_KEY_ERROR)
 
     authorization = request.headers.get("authorization")
     if not authorization:
-        raise RuntimeError(
-            "Conekta API key is not set. Send it as Authorization: Bearer <key>."
-        )
+        raise RuntimeError(REQUEST_API_KEY_ERROR)
 
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
