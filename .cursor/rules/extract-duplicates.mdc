@@ -1,0 +1,28 @@
+---
+description: Extract repeated literals or code into shared constants or helpers
+alwaysApply: true
+---
+
+# Extract Repeated Values
+
+- If the same user-facing message, literal, or small code block appears more than once, extract it into a shared constant, variable, or helper.
+- Prefer a module-level constant for repeated error messages, labels, headers, and config values.
+- Prefer a helper function when the duplication is behavioral instead of just textual.
+- Keep the extracted name descriptive and close to the code that uses it.
+- Skip extraction only when duplication is required by the framework or when inlining is clearly more readable for a one-off case.
+
+Example:
+
+```python
+# Bad
+raise RuntimeError("API key is missing")
+...
+raise RuntimeError("API key is missing")
+
+# Good
+API_KEY_MISSING_ERROR = "API key is missing"
+
+raise RuntimeError(API_KEY_MISSING_ERROR)
+...
+raise RuntimeError(API_KEY_MISSING_ERROR)
+```
