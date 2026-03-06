@@ -26,7 +26,6 @@ def get_client() -> httpx.AsyncClient:
             base_url=BASE_URL,
             headers={
                 "Authorization": f"Bearer {_get_api_key()}",
-                "Content-Type": CONTENT_TYPE,
                 "Accept": CONTENT_TYPE,
                 "Accept-Language": "en",
             },
@@ -75,8 +74,7 @@ async def conekta_request(
     params: dict | None = None,
 ) -> str:
     try:
-        content = json.dumps(body).encode("utf-8") if body else None
-        response = await get_client().request(method, path, content=content, params=params)
+        response = await get_client().request(method, path, json=body, params=params)
         response.raise_for_status()
         if response.status_code == 204:
             return _format({"success": True})

@@ -10,7 +10,7 @@ from conekta_mcp.client import conekta_get, conekta_request, get_client
 def test_get_client_sets_auth_header():
     client = get_client()
     assert client.headers["authorization"] == "Bearer test_key_abc123"
-    assert "conekta" in client.headers["content-type"]
+    assert "conekta" in client.headers["accept"]
 
 
 def test_get_client_missing_key(monkeypatch):
@@ -74,3 +74,23 @@ async def test_conekta_request_204_no_content(mock_api):
     result = await conekta_request("POST", "/orders/ord_1/cancel")
     data = json.loads(result)
     assert data["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_conekta_request_sends_json_body(mock_api):
+    """Verify that POST requests actually send the JSON body with correct headers."""
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_1"})
+    )
+    body = {"name": "Test", "type": "PaymentLink", "recurrent": False}
+    await conekta_request("POST", "/checkouts", body=body)
+
+    assert len(route.calls) == 1
+    request = route.calls[0].request
+
+    # Verify body was actually sent
+    sent_body = json.loads(request.content)
+    assert sent_body == body
+
+    # Verify Content-Type is application/json (not vendor type)
+    assert request.headers["content-type"] == "application/json"
