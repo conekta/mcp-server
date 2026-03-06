@@ -7,6 +7,7 @@ from mcp.server.lowlevel.server import request_ctx
 from mcp.shared.context import RequestContext
 from starlette.requests import Request
 
+from conekta_mcp import auth
 from conekta_mcp.client import USER_AGENT, conekta_get, conekta_request, get_client
 
 
@@ -36,11 +37,12 @@ def test_get_client_sets_default_headers():
 @pytest.mark.asyncio
 async def test_conekta_get_missing_key(monkeypatch):
     monkeypatch.delenv("CONEKTA_API_KEY", raising=False)
-    with pytest.raises(RuntimeError, match="Authorization: Bearer <key>"):
+    with pytest.raises(RuntimeError, match="CONEKTA_API_KEY environment variable"):
         await conekta_get("/balance")
 
 
 def test_conekta_request_uses_authorization_header_from_request_context():
+    auth.set_api_key_provider(auth.get_request_header_api_key)
     request = _request_with_headers([(b"authorization", b"Bearer key_from_header")])
     token = request_ctx.set(
         RequestContext(
@@ -54,15 +56,14 @@ def test_conekta_request_uses_authorization_header_from_request_context():
 
     try:
         assert get_client().headers.get("authorization") is None
-        from conekta_mcp.client import _get_api_key
-
-        assert _get_api_key() == "key_from_header"
+        assert auth.get_api_key() == "key_from_header"
     finally:
         request_ctx.reset(token)
 
 
 @pytest.mark.asyncio
 async def test_conekta_request_sends_request_authorization_header(mock_api):
+    auth.set_api_key_provider(auth.get_request_header_api_key)
     route = mock_api.get("/balance").mock(
         return_value=httpx.Response(200, json={"balance": 1000})
     )
@@ -86,6 +87,26 @@ async def test_conekta_request_sends_request_authorization_header(mock_api):
     sent_request = route.calls[0].request
     assert sent_request.headers["authorization"] == "Bearer key_from_header"
     assert sent_request.headers["user-agent"] == USER_AGENT
+
+
+def test_request_header_provider_requires_bearer_format():
+    auth.set_api_key_provider(auth.get_request_header_api_key)
+    request = _request_with_headers([(b"authorization", b"Basic key_from_header")])
+    token = request_ctx.set(
+        RequestContext(
+            request_id="req_3",
+            meta=None,
+            session=None,
+            lifespan_context=None,
+            request=request,
+        )
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="Bearer token format"):
+            auth.get_api_key()
+    finally:
+        request_ctx.reset(token)
 
 
 @pytest.mark.asyncio

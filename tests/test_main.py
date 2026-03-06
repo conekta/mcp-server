@@ -21,15 +21,11 @@ def test_build_parser_reads_transport_env(monkeypatch):
 def test_main_runs_selected_transport(monkeypatch):
     call = {}
 
-    def fake_run(*, transport, mount_path=None):
-        call["transport"] = transport
-        call["mount_path"] = mount_path
+    def fake_runner():
+        call["transport"] = "streamable-http"
 
-    monkeypatch.setattr(__main__.mcp, "run", fake_run)
+    monkeypatch.setitem(__main__.TRANSPORT_RUNNERS, "streamable-http", fake_runner)
 
     __main__.main(["--transport", "streamable-http"])
 
-    assert call == {
-        "transport": "streamable-http",
-        "mount_path": None,
-    }
+    assert call == {"transport": "streamable-http"}
