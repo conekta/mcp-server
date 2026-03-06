@@ -16,6 +16,10 @@ async def create_checkout(
     item_unit_price: int,
     item_quantity: int = 1,
     needs_shipping_contact: bool = False,
+    customer_info_customer_id: str | None = None,
+    customer_info_name: str | None = None,
+    customer_info_email: str | None = None,
+    customer_info_phone: str | None = None,
     line_items_json: str | None = None,
     monthly_installments_enabled: bool = False,
     monthly_installments_options_json: str | None = None,
@@ -35,6 +39,10 @@ async def create_checkout(
         item_unit_price: Price per unit in cents (e.g., 50000 for $500.00 MXN)
         item_quantity: Number of units (default 1)
         needs_shipping_contact: Whether shipping contact info is required (default false)
+        customer_info_customer_id: Existing Conekta customer ID (e.g., cus_2tXyF9BwPG14UMkAA)
+        customer_info_name: Customer name (if not using existing customer)
+        customer_info_email: Customer email (if not using existing customer)
+        customer_info_phone: Customer phone E.164 (if not using existing customer)
         line_items_json: JSON array for multiple items, overrides item_name/unit_price/quantity: [{"name":"Item","unit_price":1000,"quantity":1}]
         monthly_installments_enabled: Enable monthly installments
         monthly_installments_options_json: JSON array of installment options: [3,6,9,12]
@@ -53,6 +61,23 @@ async def create_checkout(
             {"name": item_name, "unit_price": item_unit_price, "quantity": item_quantity}
         ]
 
+    order_template: dict = {
+        "currency": order_template_currency,
+        "line_items": line_items,
+    }
+
+    if customer_info_customer_id:
+        order_template["customer_info"] = {"customer_id": customer_info_customer_id}
+    elif customer_info_name or customer_info_email or customer_info_phone:
+        ci: dict = {}
+        if customer_info_name:
+            ci["name"] = customer_info_name
+        if customer_info_email:
+            ci["email"] = customer_info_email
+        if customer_info_phone:
+            ci["phone"] = customer_info_phone
+        order_template["customer_info"] = ci
+
     body: dict = {
         "name": name,
         "type": type,
@@ -60,10 +85,7 @@ async def create_checkout(
         "needs_shipping_contact": needs_shipping_contact,
         "expires_at": expires_at,
         "allowed_payment_methods": methods,
-        "order_template": {
-            "currency": order_template_currency,
-            "line_items": line_items,
-        },
+        "order_template": order_template,
     }
 
     if monthly_installments_enabled:

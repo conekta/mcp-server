@@ -34,6 +34,54 @@ async def test_create_checkout(mock_api):
 
 
 @pytest.mark.asyncio
+async def test_create_checkout_with_customer_id(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_3"})
+    )
+    result = await create_checkout(
+        name="With Customer",
+        type="PaymentLink",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Playera",
+        item_unit_price=50000,
+        customer_info_customer_id="cus_2tXyF9BwPG14UMkAA",
+    )
+    data = json.loads(result)
+    assert data["id"] == "chk_3"
+    sent = json.loads(route.calls[0].request.content)
+    assert sent["order_template"]["customer_info"] == {"customer_id": "cus_2tXyF9BwPG14UMkAA"}
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_with_customer_info(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_4"})
+    )
+    result = await create_checkout(
+        name="With Info",
+        type="PaymentLink",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Playera",
+        item_unit_price=50000,
+        customer_info_name="Miguel",
+        customer_info_email="miguel@test.com",
+        customer_info_phone="+5215555555555",
+    )
+    data = json.loads(result)
+    assert data["id"] == "chk_4"
+    sent = json.loads(route.calls[0].request.content)
+    ci = sent["order_template"]["customer_info"]
+    assert ci["name"] == "Miguel"
+    assert ci["email"] == "miguel@test.com"
+
+
+@pytest.mark.asyncio
 async def test_create_checkout_with_line_items_json(mock_api):
     mock_api.post("/checkouts").mock(
         return_value=httpx.Response(201, json={"id": "chk_2"})
