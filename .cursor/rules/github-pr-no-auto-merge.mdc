@@ -1,0 +1,13 @@
+---
+description: Require explicit confirmation before merging pull requests
+alwaysApply: true
+---
+
+# GitHub PR Safety
+
+- This rule applies only when the task involves GitHub or pull request actions.
+- Never merge a pull request automatically.
+- Never enable auto-merge on the user's behalf.
+- Never approve and merge on the user's behalf.
+- Before any merge action, ask for explicit user confirmation in the current conversation.
+- If asked to help with a PR, stop after creating, updating, or reviewing it unless the user explicitly asks to merge.
