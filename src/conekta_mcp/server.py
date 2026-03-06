@@ -24,7 +24,8 @@ mcp = FastMCP(
     instructions=(
         "Conekta Payment API server. Provides tools to manage customers, "
         "orders, charges, subscriptions, plans, checkouts, and other "
-        "Conekta payment resources. Requires CONEKTA_API_KEY environment variable."
+        "Conekta payment resources. Requires a Conekta API key either via "
+        "Authorization Bearer header or CONEKTA_API_KEY environment variable."
     ),
     host=_get_env("CONEKTA_MCP_HOST", "127.0.0.1"),
     port=_get_int_env("CONEKTA_MCP_PORT", 8000),

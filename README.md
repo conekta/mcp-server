@@ -26,6 +26,11 @@ https://mcp.conekta.com/mcp
 ```
 
 Use this endpoint if you want to connect to the hosted Conekta MCP server.
+Send your Conekta API key in the request header:
+
+```text
+Authorization: Bearer key_xxx
+```
 
 ## Configuration (Claude Desktop / stdio)
 
