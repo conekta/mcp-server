@@ -1,5 +1,5 @@
 import json as _json
-from typing import Literal, TypeAlias
+from typing import Literal
 from typing_extensions import NotRequired, TypedDict
 
 CHECKOUT_TYPE_INTEGRATION = "Integration"
@@ -38,7 +38,7 @@ class HostedPaymentCheckout(BaseCheckout):
     success_url: NotRequired[str]
 
 
-OrderCheckout: TypeAlias = IntegrationCheckout | HostedPaymentCheckout
+type OrderCheckout = IntegrationCheckout | HostedPaymentCheckout
 
 
 def checkout_config_error(message: str) -> str:

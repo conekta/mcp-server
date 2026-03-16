@@ -1,4 +1,1 @@
-from typing import TypeAlias
-
-
-Metadata: TypeAlias = dict[str, object]
+type Metadata = dict[str, object]
