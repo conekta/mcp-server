@@ -102,7 +102,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ## Docker
 
 ```bash
-docker run -i --rm \
+docker run --pull=always -i --rm \
   -e CONEKTA_API_KEY=key_your_api_key \
   ghcr.io/conekta/mcp-server:latest
 ```
@@ -114,7 +114,7 @@ docker run -i --rm \
   "mcpServers": {
     "conekta": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "CONEKTA_API_KEY", "ghcr.io/conekta/mcp-server:latest"],
+      "args": ["run", "--pull=always", "-i", "--rm", "-e", "CONEKTA_API_KEY", "ghcr.io/conekta/mcp-server:latest"],
       "env": {
         "CONEKTA_API_KEY": "key_your_api_key"
       }
