@@ -20,7 +20,6 @@ async def test_create_checkout(mock_api):
     )
     result = await create_checkout(
         name="Test Checkout",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card,cash,bank_transfer",
@@ -40,7 +39,6 @@ async def test_create_checkout_with_customer_id(mock_api):
     )
     result = await create_checkout(
         name="With Customer",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card",
@@ -62,7 +60,6 @@ async def test_create_checkout_with_customer_info(mock_api):
     )
     result = await create_checkout(
         name="With Info",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card",
@@ -88,7 +85,6 @@ async def test_create_checkout_with_installments(mock_api):
     )
     result = await create_checkout(
         name="Installments",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card",
@@ -112,7 +108,6 @@ async def test_create_checkout_with_line_items_json(mock_api):
     )
     result = await create_checkout(
         name="Multi Item",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card",
@@ -129,7 +124,6 @@ async def test_create_checkout_with_line_items_json(mock_api):
 async def test_create_checkout_invalid_json():
     result = await create_checkout(
         name="Bad",
-        type="PaymentLink",
         recurrent=False,
         expires_at=1735689600,
         allowed_payment_methods="card",

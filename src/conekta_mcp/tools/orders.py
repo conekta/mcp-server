@@ -1,6 +1,12 @@
-import json as _json
-
 from conekta_mcp.client import build_params, conekta_get, conekta_request
+from conekta_mcp.tools.order_checkout import (
+    OrderCheckout,
+    validate_checkout,
+)
+from conekta_mcp.tools.order_charge import OrderCharge
+from conekta_mcp.tools.order_line_item import OrderLineItem
+from conekta_mcp.tools.metadata import Metadata
+from conekta_mcp.tools.order_shipping_line import OrderShippingLine
 from conekta_mcp.server import mcp
 
 
@@ -11,10 +17,11 @@ async def create_order(
     customer_info_name: str | None = None,
     customer_info_email: str | None = None,
     customer_info_phone: str | None = None,
-    line_items_json: str | None = None,
-    charges_json: str | None = None,
-    shipping_lines_json: str | None = None,
-    metadata_json: str | None = None,
+    checkout: OrderCheckout | None = None,
+    line_items: list[OrderLineItem] | None = None,
+    charges: list[OrderCharge] | None = None,
+    shipping_lines: list[OrderShippingLine] | None = None,
+    metadata: Metadata | None = None,
 ) -> str:
     """Create a new order. Provide customer_info_customer_id for an existing
     customer, or name/email/phone for a new one.
@@ -25,10 +32,13 @@ async def create_order(
         customer_info_name: Customer name (if not using existing customer)
         customer_info_email: Customer email (if not using existing customer)
         customer_info_phone: Customer phone E.164 (if not using existing customer)
-        line_items_json: JSON array of line items: [{"name":"Item","unit_price":1000,"quantity":1}]
-        charges_json: JSON array of charges: [{"payment_method":{"type":"card","token_id":"tok_..."}}]
-        shipping_lines_json: JSON array of shipping lines: [{"amount":500,"carrier":"FedEx"}]
-        metadata_json: JSON object of metadata: {"key":"value"}
+        checkout: Checkout object. Supported types:
+            Integration: {"type":"Integration","allowed_payment_methods":["card"],"name":"Pago"}
+            HostedPayment: {"type":"HostedPayment","allowed_payment_methods":["card"],"name":"Pago","success_url":"https://...","failure_url":"https://..."}
+        line_items: Order line items: [{"name":"Item","unit_price":1000,"quantity":1}]
+        charges: Order charges: [{"payment_method":{"type":"card","token_id":"tok_..."}}]
+        shipping_lines: Order shipping lines: [{"amount":500,"carrier":"FedEx"}]
+        metadata: Metadata object: {"key":"value"}
     """
     body: dict = {"currency": currency}
 
@@ -43,17 +53,23 @@ async def create_order(
         if ci:
             body["customer_info"] = ci
 
-    for field, value in [
-        ("line_items", line_items_json),
-        ("charges", charges_json),
-        ("shipping_lines", shipping_lines_json),
-        ("metadata", metadata_json),
-    ]:
-        if value:
-            try:
-                body[field] = _json.loads(value)
-            except _json.JSONDecodeError:
-                return f'{{"error": true, "message": "Invalid JSON in {field}"}}'
+    if checkout:
+        validated_checkout, checkout_error = validate_checkout(checkout)
+        if checkout_error:
+            return checkout_error
+        body["checkout"] = validated_checkout
+
+    if line_items:
+        body["line_items"] = line_items
+
+    if charges:
+        body["charges"] = charges
+
+    if shipping_lines:
+        body["shipping_lines"] = shipping_lines
+
+    if metadata:
+        body["metadata"] = metadata
 
     return await conekta_request("POST", "/orders", body=body)
 
@@ -98,20 +114,17 @@ async def get_order(order_id: str) -> str:
 @mcp.tool()
 async def update_order(
     order_id: str,
-    metadata_json: str | None = None,
+    metadata: Metadata | None = None,
 ) -> str:
     """Update an existing order.
 
     Args:
         order_id: The Conekta order ID
-        metadata_json: JSON object of metadata to update: {"key":"value"}
+        metadata: Metadata object to update: {"key":"value"}
     """
     body: dict = {}
-    if metadata_json:
-        try:
-            body["metadata"] = _json.loads(metadata_json)
-        except _json.JSONDecodeError:
-            return '{"error": true, "message": "Invalid JSON in metadata"}'
+    if metadata:
+        body["metadata"] = metadata
     return await conekta_request("PUT", f"/orders/{order_id}", body=body)
 
 

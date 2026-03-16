@@ -3,11 +3,12 @@ import json as _json
 from conekta_mcp.client import build_params, conekta_get, conekta_request
 from conekta_mcp.server import mcp
 
+PAYMENT_LINK_TYPE = "PaymentLink"
+
 
 @mcp.tool()
 async def create_checkout(
     name: str,
-    type: str,
     recurrent: bool,
     expires_at: int,
     allowed_payment_methods: str,
@@ -30,7 +31,6 @@ async def create_checkout(
 
     Args:
         name: Checkout name for identification
-        type: Checkout type (PaymentLink or Integration)
         recurrent: false for single use, true for multiple payments
         expires_at: Expiration Unix timestamp (10 minutes to 365 days from now)
         allowed_payment_methods: Comma-separated payment methods (e.g., "card,cash,bank_transfer")
@@ -80,7 +80,7 @@ async def create_checkout(
 
     body: dict = {
         "name": name,
-        "type": type,
+        "type": PAYMENT_LINK_TYPE,
         "recurrent": recurrent,
         "needs_shipping_contact": needs_shipping_contact,
         "expires_at": expires_at,
