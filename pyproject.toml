@@ -1,8 +1,8 @@
 [project]
 name = "conekta-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server for the Conekta payment API"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=1.26.0",
     "httpx>=0.27.0",
