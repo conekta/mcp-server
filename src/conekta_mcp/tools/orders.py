@@ -6,6 +6,7 @@ from conekta_mcp.tools.order_checkout import (
 from conekta_mcp.tools.order_charge import OrderCharge
 from conekta_mcp.tools.order_line_item import OrderLineItem
 from conekta_mcp.tools.metadata import Metadata
+from conekta_mcp.tools.order_shipping_contact import OrderShippingContact
 from conekta_mcp.tools.order_shipping_line import OrderShippingLine
 from conekta_mcp.server import mcp
 
@@ -20,6 +21,7 @@ async def create_order(
     checkout: OrderCheckout | None = None,
     line_items: list[OrderLineItem] | None = None,
     charges: list[OrderCharge] | None = None,
+    shipping_contact: OrderShippingContact | None = None,
     shipping_lines: list[OrderShippingLine] | None = None,
     metadata: Metadata | None = None,
 ) -> str:
@@ -37,6 +39,7 @@ async def create_order(
             HostedPayment: {"type":"HostedPayment","allowed_payment_methods":["card"],"name":"Pago","success_url":"https://...","failure_url":"https://..."}
         line_items: Order line items: [{"name":"Item","unit_price":1000,"quantity":1}]
         charges: Order charges: [{"payment_method":{"type":"card","token_id":"tok_..."}}]
+        shipping_contact: Shipping address: {"address":{"street1":"Nuevo Leon 254","postal_code":"06100","city":"Ciudad de Mexico","state":"Ciudad de Mexico","country":"MX"}}
         shipping_lines: Order shipping lines: [{"amount":500,"carrier":"FedEx"}]
         metadata: Metadata object: {"key":"value"}
     """
@@ -64,6 +67,9 @@ async def create_order(
 
     if charges:
         body["charges"] = charges
+
+    if shipping_contact:
+        body["shipping_contact"] = shipping_contact
 
     if shipping_lines:
         body["shipping_lines"] = shipping_lines
