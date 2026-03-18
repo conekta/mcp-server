@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Added missing `shipping_contact` parameter to `create_order` tool. Previously all order creation failed with `conekta.errors.parameter_validation.shipping_contact.missing`.
+
+### Added
+
+- Added `order_shipping_contact.py` with `OrderShippingContact` and `OrderShippingContactAddress` typed schemas.
+
 ## [0.3.0] - 2026-03-16
 
 ### Changed

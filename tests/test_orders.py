@@ -181,6 +181,56 @@ async def test_create_order_checkout_requires_object():
 
 
 @pytest.mark.asyncio
+async def test_create_order_with_shipping_contact(mock_api):
+    route = mock_api.post("/orders").mock(
+        return_value=httpx.Response(201, json={"id": "ord_new"})
+    )
+    await create_order(
+        currency="MXN",
+        shipping_contact={
+            "address": {
+                "street1": "Nuevo Leon 254",
+                "postal_code": "06100",
+                "city": "Ciudad de Mexico",
+                "state": "Ciudad de Mexico",
+                "country": "MX",
+                "residential": False,
+            }
+        },
+    )
+    body = json.loads(route.calls[0].request.content)
+    assert body["shipping_contact"]["address"]["street1"] == "Nuevo Leon 254"
+    assert body["shipping_contact"]["address"]["country"] == "MX"
+    assert body["shipping_contact"]["address"]["residential"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_order_with_shipping_contact_optional_fields(mock_api):
+    route = mock_api.post("/orders").mock(
+        return_value=httpx.Response(201, json={"id": "ord_new"})
+    )
+    await create_order(
+        currency="MXN",
+        shipping_contact={
+            "address": {
+                "street1": "Nuevo Leon 254",
+                "street2": "Departamento 404",
+                "postal_code": "06100",
+                "city": "Ciudad de Mexico",
+                "state": "Ciudad de Mexico",
+                "country": "MX",
+            },
+            "phone": "+525512345678",
+            "receiver": "John Doe",
+        },
+    )
+    body = json.loads(route.calls[0].request.content)
+    assert body["shipping_contact"]["address"]["street2"] == "Departamento 404"
+    assert body["shipping_contact"]["phone"] == "+525512345678"
+    assert body["shipping_contact"]["receiver"] == "John Doe"
+
+
+@pytest.mark.asyncio
 async def test_get_order(mock_api):
     mock_api.get("/orders/ord_1").mock(
         return_value=httpx.Response(200, json={"id": "ord_1"})
