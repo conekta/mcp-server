@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Added missing `shipping_contact` parameter to `create_order` tool. Previously all order creation failed with `conekta.errors.parameter_validation.shipping_contact.missing`.
+- Fixed `cancel_checkout` using `POST` instead of `PUT` as required by the Conekta API.
 
 ### Added
 
