@@ -26,8 +26,8 @@ jobs:
       - name: Mask sensitive values
         id: mask
         run: |
-          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
-          echo "REGISTRY=${{ secrets.ECR_REGISTRY }}" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::${{ secrets.ECR_URL }}"
+          echo "REGISTRY=${{ secrets.ECR_URL }}" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -81,7 +81,7 @@ jobs:
     steps:
       - name: Mask sensitive values
         run: |
-          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
+          echo "::add-mask::${{ secrets.ECR_URL }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -117,7 +117,7 @@ jobs:
     steps:
       - name: Mask sensitive values
         run: |
-          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
+          echo "::add-mask::${{ secrets.ECR_URL }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
