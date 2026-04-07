@@ -1,11 +1,12 @@
 import json
+import os
 from importlib.metadata import PackageNotFoundError, version
 
 import httpx
 
 from conekta_mcp.auth import get_api_key
 
-BASE_URL = "https://api.conekta.io"
+BASE_URL = os.getenv("CONEKTA_API_BASE_URL", "https://api.conekta.io")
 CONTENT_TYPE = "application/vnd.conekta-v2.2.0+json"
 
 
