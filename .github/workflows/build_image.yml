@@ -1,0 +1,154 @@
+name: Build and push Docker image to ECR
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: aws-runner-set
+    outputs:
+      tag: ${{ steps.extract_tag.outputs.TAG }}
+      extra_tag: ${{ steps.extract_tag.outputs.EXTRA_TAG }}
+      registry: ${{ steps.mask.outputs.REGISTRY }}
+      repo: ${{ github.event.repository.name }}
+    steps:
+      - name: Mask sensitive values
+        id: mask
+        run: |
+          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
+          echo "REGISTRY=${{ secrets.ECR_REGISTRY }}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Ensure ECR repository exists
+        run: |
+          aws ecr describe-repositories \
+            --repository-names ${{ github.event.repository.name }} 2>/dev/null || \
+          aws ecr create-repository \
+            --repository-name ${{ github.event.repository.name }} > /dev/null
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Determine image tag
+        id: extract_tag
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          echo "TAG=$SHA" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "EXTRA_TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/heads/* ]]; then
+            echo "EXTRA_TAG=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build (${{ matrix.platform }})
+    needs: setup
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+        include:
+          - platform: linux/amd64
+            suffix: amd64
+            runner: aws-runner-set
+          - platform: linux/arm64
+            suffix: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          file: Dockerfile
+          context: .
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: ${{ needs.setup.outputs.registry }}/${{ needs.setup.outputs.repo }}:${{ needs.setup.outputs.tag }}-${{ matrix.suffix }}
+
+  manifest:
+    name: Create multi-arch manifest
+    needs: [setup, build]
+    runs-on: aws-runner-set
+    steps:
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ secrets.ECR_REGISTRY }}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create and push multi-arch manifest
+        env:
+          IMAGE: ${{ needs.setup.outputs.registry }}/${{ needs.setup.outputs.repo }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          docker buildx imagetools create -t "$IMAGE:$TAG" \
+            "$IMAGE:$TAG-amd64" \
+            "$IMAGE:$TAG-arm64"
+
+      - name: Add extra tags
+        env:
+          IMAGE: ${{ needs.setup.outputs.registry }}/${{ needs.setup.outputs.repo }}
+          TAG: ${{ needs.setup.outputs.tag }}
+          EXTRA_TAG: ${{ needs.setup.outputs.extra_tag }}
+          IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          TAGS=""
+          [[ -n "$EXTRA_TAG" ]] && TAGS="-t $IMAGE:$EXTRA_TAG"
+          [[ "$IS_MAIN" == "true" ]] && TAGS="$TAGS -t $IMAGE:latest"
+          [[ -n "$TAGS" ]] && docker buildx imagetools create $TAGS "$IMAGE:$TAG"
