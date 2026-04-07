@@ -1,8 +1,19 @@
+import logging
 import os
 
 from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+
+class _HealthCheckFilter(logging.Filter):
+    """Filter out /ping access logs to reduce noise from K8s health checks."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/ping" not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(_HealthCheckFilter())
 
 
 def _get_env(name: str, default: str) -> str:
