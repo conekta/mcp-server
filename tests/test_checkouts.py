@@ -160,7 +160,7 @@ async def test_get_checkout(mock_api):
 
 @pytest.mark.asyncio
 async def test_cancel_checkout(mock_api):
-    mock_api.post("/checkouts/chk_1/cancel").mock(
+    mock_api.put("/checkouts/chk_1/cancel").mock(
         return_value=httpx.Response(200, json={"id": "chk_1", "status": "cancelled"})
     )
     result = await cancel_checkout("chk_1")

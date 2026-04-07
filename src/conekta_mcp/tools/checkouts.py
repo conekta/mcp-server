@@ -139,7 +139,7 @@ async def cancel_checkout(checkout_id: str) -> str:
     Args:
         checkout_id: The Conekta checkout ID to cancel
     """
-    return await conekta_request("POST", f"/checkouts/{checkout_id}/cancel")
+    return await conekta_request("PUT", f"/checkouts/{checkout_id}/cancel")
 
 
 @mcp.tool()
