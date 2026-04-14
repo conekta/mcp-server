@@ -9,13 +9,14 @@ def _build_line_items(
     line_items_json: str | None,
     item_name: str,
     item_unit_price: int,
+    item_quantity: int,
 ) -> tuple[list, str | None]:
     if line_items_json:
         items, err = parse_json_field("line_items_json", line_items_json)
         if err:
             return [], err
         return items, None
-    return [{"name": item_name, "unit_price": item_unit_price, "quantity": 1}], None
+    return [{"name": item_name, "unit_price": item_unit_price, "quantity": item_quantity}], None
 
 
 def _build_customer_info(customer_info_json: str | None) -> tuple[dict | None, str | None]:
@@ -33,8 +34,11 @@ async def create_checkout(
     order_template_currency: str,
     item_name: str,
     item_unit_price: int,
+    item_quantity: int = 1,
+    needs_shipping_contact: bool = False,
     customer_info_json: str | None = None,
     line_items_json: str | None = None,
+    monthly_installments_enabled: bool = False,
     monthly_installments_options: list[int] | None = None,
     success_url: str | None = None,
     failure_url: str | None = None,
@@ -50,14 +54,17 @@ async def create_checkout(
         order_template_currency: ISO currency code (e.g., MXN)
         item_name: Product name for the single line item (ignored when line_items_json is provided)
         item_unit_price: Price in cents for the single line item (ignored when line_items_json is provided)
+        item_quantity: Number of units (default 1, ignored when line_items_json is provided)
+        needs_shipping_contact: Whether shipping contact info is required (default false)
         customer_info_json: JSON object with customer info — either {"customer_id": "cus_xxx"} or {"name": "...", "email": "...", "phone": "..."}
         line_items_json: JSON array for multiple items: [{"name":"Item","unit_price":1000,"quantity":2}]
-        monthly_installments_options: Enable installments with these options (e.g., [3,6,9,12])
+        monthly_installments_enabled: Enable monthly installments
+        monthly_installments_options: Installment options (e.g., [3,6,9,12])
         success_url: Redirect URL after successful payment
         failure_url: Redirect URL after failed payment
         origin: Origin identifier for the checkout (e.g., "PaymentAgentTelegram")
     """
-    line_items, err = _build_line_items(line_items_json, item_name, item_unit_price)
+    line_items, err = _build_line_items(line_items_json, item_name, item_unit_price, item_quantity)
     if err:
         return err
 
@@ -73,15 +80,16 @@ async def create_checkout(
         "name": name,
         "type": PAYMENT_LINK_TYPE,
         "recurrent": recurrent,
-        "needs_shipping_contact": False,
+        "needs_shipping_contact": needs_shipping_contact,
         "expires_at": expires_at,
         "allowed_payment_methods": [m.strip() for m in allowed_payment_methods.split(",")],
         "order_template": order_template,
     }
 
-    if monthly_installments_options:
+    if monthly_installments_enabled:
         body["monthly_installments_enabled"] = True
-        body["monthly_installments_options"] = monthly_installments_options
+        if monthly_installments_options:
+            body["monthly_installments_options"] = monthly_installments_options
     if success_url:
         body["success_url"] = success_url
     if failure_url:

@@ -76,6 +76,27 @@ async def test_create_checkout_with_customer_info(mock_api):
 
 
 @pytest.mark.asyncio
+async def test_create_checkout_with_quantity_and_shipping(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_9"})
+    )
+    await create_checkout(
+        name="Quantity Test",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Caja",
+        item_unit_price=10000,
+        item_quantity=3,
+        needs_shipping_contact=True,
+    )
+    sent = json.loads(route.calls[0].request.content)
+    assert sent["order_template"]["line_items"][0]["quantity"] == 3
+    assert sent["needs_shipping_contact"] is True
+
+
+@pytest.mark.asyncio
 async def test_create_checkout_invalid_customer_info_json():
     result = await create_checkout(
         name="Bad Customer",
@@ -104,6 +125,7 @@ async def test_create_checkout_with_installments(mock_api):
         order_template_currency="MXN",
         item_name="Laptop",
         item_unit_price=2000000,
+        monthly_installments_enabled=True,
         monthly_installments_options=[3, 6, 9, 12],
     )
     data = json.loads(result)
