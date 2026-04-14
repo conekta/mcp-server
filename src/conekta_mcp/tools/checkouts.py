@@ -1,7 +1,6 @@
-import json as _json
-
 from conekta_mcp.client import build_params, conekta_get, conekta_request
 from conekta_mcp.server import mcp
+from conekta_mcp.tools.order_checkout import invalid_json_error, parse_json_field
 
 PAYMENT_LINK_TYPE = "PaymentLink"
 
@@ -12,20 +11,17 @@ def _build_line_items(
     item_unit_price: int,
 ) -> tuple[list, str | None]:
     if line_items_json:
-        try:
-            return _json.loads(line_items_json), None
-        except _json.JSONDecodeError:
-            return [], '{"error": true, "message": "Invalid JSON in line_items_json"}'
+        items, err = parse_json_field("line_items_json", line_items_json)
+        if err:
+            return [], err
+        return items, None
     return [{"name": item_name, "unit_price": item_unit_price, "quantity": 1}], None
 
 
 def _build_customer_info(customer_info_json: str | None) -> tuple[dict | None, str | None]:
     if not customer_info_json:
         return None, None
-    try:
-        return _json.loads(customer_info_json), None
-    except _json.JSONDecodeError:
-        return None, '{"error": true, "message": "Invalid JSON in customer_info_json"}'
+    return parse_json_field("customer_info_json", customer_info_json)
 
 
 @mcp.tool()
