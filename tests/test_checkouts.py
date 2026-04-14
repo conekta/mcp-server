@@ -137,6 +137,27 @@ async def test_create_checkout_invalid_json():
 
 
 @pytest.mark.asyncio
+async def test_create_checkout_with_redirect_urls(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_8"})
+    )
+    await create_checkout(
+        name="With URLs",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Producto",
+        item_unit_price=10000,
+        success_url="https://example.com/success",
+        failure_url="https://example.com/failure",
+    )
+    sent = json.loads(route.calls[0].request.content)
+    assert sent["success_url"] == "https://example.com/success"
+    assert sent["failure_url"] == "https://example.com/failure"
+
+
+@pytest.mark.asyncio
 async def test_create_checkout_with_origin(mock_api):
     route = mock_api.post("/checkouts").mock(
         return_value=httpx.Response(201, json={"id": "chk_6"})
