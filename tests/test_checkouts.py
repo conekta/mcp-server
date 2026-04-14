@@ -26,7 +26,6 @@ async def test_create_checkout(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
-        item_quantity=1,
     )
     data = json.loads(result)
     assert data["id"] == "chk_1"
@@ -45,7 +44,7 @@ async def test_create_checkout_with_customer_id(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
-        customer_info_customer_id="cus_2tXyF9BwPG14UMkAA",
+        customer_info_json='{"customer_id": "cus_2tXyF9BwPG14UMkAA"}',
     )
     data = json.loads(result)
     assert data["id"] == "chk_3"
@@ -66,9 +65,7 @@ async def test_create_checkout_with_customer_info(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
-        customer_info_name="Miguel",
-        customer_info_email="miguel@test.com",
-        customer_info_phone="+5215555555555",
+        customer_info_json='{"name": "Miguel", "email": "miguel@test.com", "phone": "+5215555555555"}',
     )
     data = json.loads(result)
     assert data["id"] == "chk_4"
@@ -76,6 +73,22 @@ async def test_create_checkout_with_customer_info(mock_api):
     ci = sent["order_template"]["customer_info"]
     assert ci["name"] == "Miguel"
     assert ci["email"] == "miguel@test.com"
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_invalid_customer_info_json():
+    result = await create_checkout(
+        name="Bad Customer",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="X",
+        item_unit_price=100,
+        customer_info_json="not json",
+    )
+    data = json.loads(result)
+    assert data["error"] is True
 
 
 @pytest.mark.asyncio
@@ -91,7 +104,6 @@ async def test_create_checkout_with_installments(mock_api):
         order_template_currency="MXN",
         item_name="Laptop",
         item_unit_price=2000000,
-        monthly_installments_enabled=True,
         monthly_installments_options=[3, 6, 9, 12],
     )
     data = json.loads(result)
