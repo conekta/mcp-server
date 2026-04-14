@@ -137,6 +137,45 @@ async def test_create_checkout_invalid_json():
 
 
 @pytest.mark.asyncio
+async def test_create_checkout_with_origin(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_6"})
+    )
+    result = await create_checkout(
+        name="Telegram Checkout",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Producto",
+        item_unit_price=10000,
+        origin="PaymentAgentTelegram",
+    )
+    data = json.loads(result)
+    assert data["id"] == "chk_6"
+    sent = json.loads(route.calls[0].request.content)
+    assert sent["origin"] == "PaymentAgentTelegram"
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_without_origin(mock_api):
+    route = mock_api.post("/checkouts").mock(
+        return_value=httpx.Response(201, json={"id": "chk_7"})
+    )
+    await create_checkout(
+        name="No Origin",
+        recurrent=False,
+        expires_at=1735689600,
+        allowed_payment_methods="card",
+        order_template_currency="MXN",
+        item_name="Producto",
+        item_unit_price=10000,
+    )
+    sent = json.loads(route.calls[0].request.content)
+    assert "origin" not in sent
+
+
+@pytest.mark.asyncio
 async def test_list_checkouts(mock_api):
     mock_api.get("/checkouts").mock(
         return_value=httpx.Response(

@@ -26,6 +26,7 @@ async def create_checkout(
     monthly_installments_options: list[int] | None = None,
     success_url: str | None = None,
     failure_url: str | None = None,
+    origin: str | None = None,
 ) -> str:
     """Create a payment link (checkout).
 
@@ -48,6 +49,7 @@ async def create_checkout(
         monthly_installments_options: Installment options (e.g., [3,6,9,12])
         success_url: Redirect URL after successful payment
         failure_url: Redirect URL after failed payment
+        origin: Origin identifier for the checkout (e.g., "PaymentAgentTelegram")
     """
     methods = [m.strip() for m in allowed_payment_methods.split(",")]
 
@@ -97,6 +99,8 @@ async def create_checkout(
         body["success_url"] = success_url
     if failure_url:
         body["failure_url"] = failure_url
+    if origin:
+        body["origin"] = origin
 
     return await conekta_request("POST", "/checkouts", body=body)
 
