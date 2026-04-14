@@ -38,7 +38,6 @@ async def create_checkout(
     needs_shipping_contact: bool = False,
     customer_info_json: str | None = None,
     line_items_json: str | None = None,
-    monthly_installments_enabled: bool = False,
     monthly_installments_options: list[int] | None = None,
     success_url: str | None = None,
     failure_url: str | None = None,
@@ -58,8 +57,7 @@ async def create_checkout(
         needs_shipping_contact: Whether shipping contact info is required (default false)
         customer_info_json: JSON object with customer info — either {"customer_id": "cus_xxx"} or {"name": "...", "email": "...", "phone": "..."}
         line_items_json: JSON array for multiple items: [{"name":"Item","unit_price":1000,"quantity":2}]
-        monthly_installments_enabled: Enable monthly installments
-        monthly_installments_options: Installment options (e.g., [3,6,9,12])
+        monthly_installments_options: Enable installments with these options (e.g., [3,6,9,12])
         success_url: Redirect URL after successful payment
         failure_url: Redirect URL after failed payment
         origin: Origin identifier for the checkout (e.g., "PaymentAgentTelegram")
@@ -86,10 +84,9 @@ async def create_checkout(
         "order_template": order_template,
     }
 
-    if monthly_installments_enabled:
+    if monthly_installments_options:
         body["monthly_installments_enabled"] = True
-        if monthly_installments_options:
-            body["monthly_installments_options"] = monthly_installments_options
+        body["monthly_installments_options"] = monthly_installments_options
     if success_url:
         body["success_url"] = success_url
     if failure_url:

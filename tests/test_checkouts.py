@@ -125,7 +125,6 @@ async def test_create_checkout_with_installments(mock_api):
         order_template_currency="MXN",
         item_name="Laptop",
         item_unit_price=2000000,
-        monthly_installments_enabled=True,
         monthly_installments_options=[3, 6, 9, 12],
     )
     data = json.loads(result)
