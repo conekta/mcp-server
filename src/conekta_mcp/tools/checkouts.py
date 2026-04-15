@@ -1,28 +1,9 @@
+import json as _json
+
 from conekta_mcp.client import build_params, conekta_get, conekta_request
 from conekta_mcp.server import mcp
-from conekta_mcp.tools.order_checkout import invalid_json_error, parse_json_field
 
 PAYMENT_LINK_TYPE = "PaymentLink"
-
-
-def _build_line_items(
-    line_items_json: str | None,
-    item_name: str,
-    item_unit_price: int,
-    item_quantity: int,
-) -> tuple[list, str | None]:
-    if line_items_json:
-        items, err = parse_json_field("line_items_json", line_items_json)
-        if err:
-            return [], err
-        return items, None
-    return [{"name": item_name, "unit_price": item_unit_price, "quantity": item_quantity}], None
-
-
-def _build_customer_info(customer_info_json: str | None) -> tuple[dict | None, str | None]:
-    if not customer_info_json:
-        return None, None
-    return parse_json_field("customer_info_json", customer_info_json)
 
 
 @mcp.tool()
@@ -36,7 +17,10 @@ async def create_checkout(
     item_unit_price: int,
     item_quantity: int = 1,
     needs_shipping_contact: bool = False,
-    customer_info_json: str | None = None,
+    customer_info_customer_id: str | None = None,
+    customer_info_name: str | None = None,
+    customer_info_email: str | None = None,
+    customer_info_phone: str | None = None,
     line_items_json: str | None = None,
     monthly_installments_enabled: bool = False,
     monthly_installments_options: list[int] | None = None,
@@ -52,29 +36,49 @@ async def create_checkout(
         expires_at: Expiration Unix timestamp (10 minutes to 365 days from now)
         allowed_payment_methods: Comma-separated payment methods (e.g., "card,cash,bank_transfer")
         order_template_currency: ISO currency code (e.g., MXN)
-        item_name: Product name for the single line item (ignored when line_items_json is provided)
-        item_unit_price: Price in cents for the single line item (ignored when line_items_json is provided)
-        item_quantity: Number of units (default 1, ignored when line_items_json is provided)
+        item_name: Product name for the line item
+        item_unit_price: Price per unit in cents (e.g., 50000 for $500.00 MXN)
+        item_quantity: Number of units (default 1)
         needs_shipping_contact: Whether shipping contact info is required (default false)
-        customer_info_json: JSON object with customer info — either {"customer_id": "cus_xxx"} or {"name": "...", "email": "...", "phone": "..."}
-        line_items_json: JSON array for multiple items: [{"name":"Item","unit_price":1000,"quantity":2}]
+        customer_info_customer_id: Existing Conekta customer ID (e.g., cus_2tXyF9BwPG14UMkAA)
+        customer_info_name: Customer name (if not using existing customer)
+        customer_info_email: Customer email (if not using existing customer)
+        customer_info_phone: Customer phone E.164 (if not using existing customer)
+        line_items_json: JSON array for multiple items, overrides item_name/unit_price/quantity: [{"name":"Item","unit_price":1000,"quantity":1}]
         monthly_installments_enabled: Enable monthly installments
         monthly_installments_options: Installment options (e.g., [3,6,9,12])
         success_url: Redirect URL after successful payment
         failure_url: Redirect URL after failed payment
         origin: Origin identifier for the checkout (e.g., "PaymentAgentTelegram")
     """
-    line_items, err = _build_line_items(line_items_json, item_name, item_unit_price, item_quantity)
-    if err:
-        return err
+    methods = [m.strip() for m in allowed_payment_methods.split(",")]
 
-    customer_info, err = _build_customer_info(customer_info_json)
-    if err:
-        return err
+    if line_items_json:
+        try:
+            line_items = _json.loads(line_items_json)
+        except _json.JSONDecodeError:
+            return '{"error": true, "message": "Invalid JSON in line_items_json"}'
+    else:
+        line_items = [
+            {"name": item_name, "unit_price": item_unit_price, "quantity": item_quantity}
+        ]
 
-    order_template: dict = {"currency": order_template_currency, "line_items": line_items}
-    if customer_info:
-        order_template["customer_info"] = customer_info
+    order_template: dict = {
+        "currency": order_template_currency,
+        "line_items": line_items,
+    }
+
+    if customer_info_customer_id:
+        order_template["customer_info"] = {"customer_id": customer_info_customer_id}
+    elif customer_info_name or customer_info_email or customer_info_phone:
+        ci: dict = {}
+        if customer_info_name:
+            ci["name"] = customer_info_name
+        if customer_info_email:
+            ci["email"] = customer_info_email
+        if customer_info_phone:
+            ci["phone"] = customer_info_phone
+        order_template["customer_info"] = ci
 
     body: dict = {
         "name": name,
@@ -82,7 +86,7 @@ async def create_checkout(
         "recurrent": recurrent,
         "needs_shipping_contact": needs_shipping_contact,
         "expires_at": expires_at,
-        "allowed_payment_methods": [m.strip() for m in allowed_payment_methods.split(",")],
+        "allowed_payment_methods": methods,
         "order_template": order_template,
     }
 
@@ -90,6 +94,7 @@ async def create_checkout(
         body["monthly_installments_enabled"] = True
         if monthly_installments_options:
             body["monthly_installments_options"] = monthly_installments_options
+
     if success_url:
         body["success_url"] = success_url
     if failure_url:
