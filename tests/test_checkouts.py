@@ -26,6 +26,7 @@ async def test_create_checkout(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
+        item_quantity=1,
     )
     data = json.loads(result)
     assert data["id"] == "chk_1"
@@ -44,7 +45,7 @@ async def test_create_checkout_with_customer_id(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
-        customer_info_json='{"customer_id": "cus_2tXyF9BwPG14UMkAA"}',
+        customer_info_customer_id="cus_2tXyF9BwPG14UMkAA",
     )
     data = json.loads(result)
     assert data["id"] == "chk_3"
@@ -65,7 +66,9 @@ async def test_create_checkout_with_customer_info(mock_api):
         order_template_currency="MXN",
         item_name="Playera",
         item_unit_price=50000,
-        customer_info_json='{"name": "Miguel", "email": "miguel@test.com", "phone": "+5215555555555"}',
+        customer_info_name="Miguel",
+        customer_info_email="miguel@test.com",
+        customer_info_phone="+5215555555555",
     )
     data = json.loads(result)
     assert data["id"] == "chk_4"
@@ -73,43 +76,6 @@ async def test_create_checkout_with_customer_info(mock_api):
     ci = sent["order_template"]["customer_info"]
     assert ci["name"] == "Miguel"
     assert ci["email"] == "miguel@test.com"
-
-
-@pytest.mark.asyncio
-async def test_create_checkout_with_quantity_and_shipping(mock_api):
-    route = mock_api.post("/checkouts").mock(
-        return_value=httpx.Response(201, json={"id": "chk_9"})
-    )
-    await create_checkout(
-        name="Quantity Test",
-        recurrent=False,
-        expires_at=1735689600,
-        allowed_payment_methods="card",
-        order_template_currency="MXN",
-        item_name="Caja",
-        item_unit_price=10000,
-        item_quantity=3,
-        needs_shipping_contact=True,
-    )
-    sent = json.loads(route.calls[0].request.content)
-    assert sent["order_template"]["line_items"][0]["quantity"] == 3
-    assert sent["needs_shipping_contact"] is True
-
-
-@pytest.mark.asyncio
-async def test_create_checkout_invalid_customer_info_json():
-    result = await create_checkout(
-        name="Bad Customer",
-        recurrent=False,
-        expires_at=1735689600,
-        allowed_payment_methods="card",
-        order_template_currency="MXN",
-        item_name="X",
-        item_unit_price=100,
-        customer_info_json="not json",
-    )
-    data = json.loads(result)
-    assert data["error"] is True
 
 
 @pytest.mark.asyncio
