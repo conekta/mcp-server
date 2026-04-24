@@ -7,7 +7,7 @@ internal: false
 container_port: 8000
 container_cpu: 256
 container_memory: 512
-prefix: /
+prefix: /mcp-server
 service_desired_count: 2
 healthcheck_path: /ping
 dockerfile: Dockerfile
@@ -19,6 +19,6 @@ environment:
   - name: "CONEKTA_MCP_PORT"
     value: "8000"
   - name: "CONEKTA_MCP_STREAMABLE_HTTP_PATH"
-    value: "/mcp"
+    value: "/mcp-server/mcp"
   - name: "CONEKTA_API_BASE_URL"
     value: "https://api.conekta.io"
