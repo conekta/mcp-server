@@ -3,9 +3,14 @@ from collections.abc import Callable
 
 from mcp.server.lowlevel.server import request_ctx
 
+from conekta_mcp.internal_auth import COMPANY_ID_HEADER, is_internal_token
+
 ApiKeyProvider = Callable[[], str]
 REQUEST_API_KEY_ERROR = (
     "Conekta API key is not set. Send it as Authorization: Bearer <key>."
+)
+INTERNAL_TOKEN_WITHOUT_COMPANY_ERROR = (
+    f"The internal service credential requires the {COMPANY_ID_HEADER} header."
 )
 
 
@@ -36,6 +41,9 @@ def get_request_header_api_key() -> str:
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise RuntimeError("Authorization header must use Bearer token format.")
+    if is_internal_token(token):
+        # Never forward the internal service credential to the public API.
+        raise RuntimeError(INTERNAL_TOKEN_WITHOUT_COMPANY_ERROR)
     return token
 
 

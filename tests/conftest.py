@@ -9,12 +9,14 @@ def set_api_key(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_client():
-    from conekta_mcp import auth, client
+    from conekta_mcp import auth, client, internal_auth
 
     auth.reset_api_key_provider()
+    internal_auth.set_internal_config(None)
     client._client = None
     yield
     auth.reset_api_key_provider()
+    internal_auth.set_internal_config(None)
     client._client = None
 
 

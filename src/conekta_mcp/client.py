@@ -5,6 +5,12 @@ from importlib.metadata import PackageNotFoundError, version
 import httpx
 
 from conekta_mcp.auth import get_api_key
+from conekta_mcp.internal_auth import (
+    audit_logger,
+    current_internal_identity,
+    get_internal_config,
+    internal_request_target,
+)
 
 BASE_URL = os.getenv("CONEKTA_API_BASE_URL", "https://api.conekta.io")
 CONTENT_TYPE = "application/vnd.conekta-v2.2.0+json"
@@ -55,13 +61,37 @@ def build_params(**kwargs) -> dict:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
+def _request_target(path: str) -> tuple[str, dict[str, str]]:
+    """URL and auth headers for ``path``: internal mode or the caller's API key."""
+    identity = current_internal_identity()
+    if identity is None:
+        return path, {"Authorization": f"Bearer {get_api_key()}"}
+
+    config = get_internal_config()
+    if config is None:  # pragma: no cover - the middleware never sets an identity without it
+        raise RuntimeError("Internal mode is not configured.")
+    return internal_request_target(config, identity, path)
+
+
+def _audit(method: str, path: str, status: int | str) -> None:
+    identity = current_internal_identity()
+    if identity is None:
+        return
+    audit_logger.info(
+        "internal_mode api_call method=%s path=%s company_id=%s caller=%s status=%s",
+        method,
+        path,
+        identity.company_id,
+        identity.caller,
+        status,
+    )
+
+
 async def conekta_get(path: str, params: dict | None = None) -> str:
+    url, auth_headers = _request_target(path)
     try:
-        response = await get_client().get(
-            path,
-            params=params,
-            headers={"Authorization": f"Bearer {get_api_key()}"},
-        )
+        response = await get_client().get(url, params=params, headers=auth_headers)
+        _audit("GET", path, response.status_code)
         response.raise_for_status()
         return _format(response.json())
     except httpx.HTTPStatusError as e:
@@ -81,14 +111,16 @@ async def conekta_request(
     body: dict | None = None,
     params: dict | None = None,
 ) -> str:
+    url, auth_headers = _request_target(path)
     try:
         response = await get_client().request(
             method,
-            path,
+            url,
             json=body,
             params=params,
-            headers={"Authorization": f"Bearer {get_api_key()}"},
+            headers=auth_headers,
         )
+        _audit(method, path, response.status_code)
         response.raise_for_status()
         if response.status_code == 204:
             return _format({"success": True})

@@ -1,9 +1,19 @@
 import logging
 import os
+from collections.abc import Sequence
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
+from mcp.types import ContentBlock, Tool
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+from conekta_mcp.internal_auth import (
+    INTERNAL_ALLOWED_TOOLS,
+    audit_logger,
+    current_internal_identity,
+)
 
 
 class _HealthCheckFilter(logging.Filter):
@@ -30,7 +40,34 @@ def _normalize_path(path: str) -> str:
         return "/"
     return path if path.startswith("/") else f"/{path}"
 
-mcp = FastMCP(
+class ConektaMCP(FastMCP):
+    """FastMCP that limits internal mode requests to INTERNAL_ALLOWED_TOOLS."""
+
+    async def list_tools(self) -> list[Tool]:
+        tools = await super().list_tools()
+        if current_internal_identity() is None:
+            return tools
+        return [tool for tool in tools if tool.name in INTERNAL_ALLOWED_TOOLS]
+
+    async def call_tool(
+        self, name: str, arguments: dict[str, Any]
+    ) -> Sequence[ContentBlock] | dict[str, Any]:
+        identity = current_internal_identity()
+        if identity is not None:
+            allowed = name in INTERNAL_ALLOWED_TOOLS
+            audit_logger.info(
+                "internal_mode tool_call tool=%s company_id=%s caller=%s allowed=%s",
+                name,
+                identity.company_id,
+                identity.caller,
+                allowed,
+            )
+            if not allowed:
+                raise ToolError(f"Tool '{name}' is not available in internal mode.")
+        return await super().call_tool(name, arguments)
+
+
+mcp = ConektaMCP(
     "conekta",
     instructions=(
         "Conekta Payment API server. Provides tools to manage customers, "
