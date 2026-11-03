@@ -66,6 +66,35 @@ claude mcp add --transport http conekta https://mcp.conekta.com/mcp \
 
 Replace `key_xxx` with your real Conekta private API key.
 
+## Internal mode (Conekta services only)
+
+Trusted Conekta services (today, the payment agent bot) can operate as a company without its private API key. This is not available to merchants.
+
+The caller sends:
+
+```text
+Authorization: Bearer <CONEKTA_MCP_INTERNAL_TOKEN>
+X-Company-Id: <company_id>
+```
+
+The server then calls payments-api at `PAYMENTS_API_INTERNAL_URL` + `/internal/api/<public path>` with a 60-second HS256 JWT signed with payments-api's `JWT_SECRET` and a fresh `X-Company-Context` (AES-256-GCM, see payments-api `lib/auth/internal_company_context.rb`). Checkouts are created with `livemode: true`.
+
+| Variable | Description |
+|---|---|
+| `CONEKTA_MCP_INTERNAL_TOKEN` | Service credential shared with the caller (at least 32 characters; `openssl rand -hex 32`, different per environment). |
+| `PAYMENTS_API_JWT_SECRET` | payments-api `JWT_SECRET` of the same environment. |
+| `PAYMENTS_API_INTERNAL_URL` | payments-api base URL reachable for `/internal/api` (no trailing `/internal/api`). |
+| `CONEKTA_MCP_INTERNAL_CALLER` | Optional caller name for audit logs and the JWT `sub`. Defaults to `conekta-payment-agent`. |
+
+Behavior:
+
+- No feature flag. With neither secret set, every request with `X-Company-Id` gets `401` and public mode works as before. With only one of `CONEKTA_MCP_INTERNAL_TOKEN` / `PAYMENTS_API_JWT_SECRET`, or without `PAYMENTS_API_INTERNAL_URL`, the server refuses to start.
+- A request with `X-Company-Id` and an invalid credential gets `401` at the HTTP layer, before any MCP session; it never falls back to public mode.
+- The internal credential without `X-Company-Id` can list tools, but any tool call fails without reaching the API.
+- Only `create_checkout` is listed and callable in internal mode.
+- Every internal tool call and API call is logged by the `conekta_mcp.audit` logger with `company_id` and caller.
+- Load these secrets only on an instance or route reachable from the internal network: `PAYMENTS_API_JWT_SECRET` lets the holder act as any company in payments-api's internal API.
+
 ## Configuration (Claude Desktop / stdio)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:

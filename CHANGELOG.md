@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Internal mode for trusted Conekta services (AL-1309): `Authorization: Bearer <CONEKTA_MCP_INTERNAL_TOKEN>` plus `X-Company-Id` makes the server call payments-api's `/internal/api` with a short-lived internal JWT and an encrypted `X-Company-Context`, so the merchant's private key never leaves payments-api. Validated in HTTP middleware (401 before any MCP session), limited to `create_checkout`, and audit-logged with `company_id` and caller. Enabled only when `CONEKTA_MCP_INTERNAL_TOKEN`, `PAYMENTS_API_JWT_SECRET` and `PAYMENTS_API_INTERNAL_URL` are set; with only one of the two secrets the server refuses to start.
+- Public mode rejects the internal service credential when it arrives without `X-Company-Id`, so it is never forwarded to the public API.
+- Added `cryptography` dependency and pinned `mcp<2` (v2 renames `FastMCP`).
 - Added `order_shipping_contact.py` with `OrderShippingContact` and `OrderShippingContactAddress` typed schemas.
 
 ## [0.3.0] - 2026-03-16
